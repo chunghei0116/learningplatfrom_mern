@@ -10,7 +10,6 @@ class AuthService {
   }
   register(username, email, password, role) {
     return axios.post(API_URL + "/register", {
-      //return a promise
       username,
       email,
       password,

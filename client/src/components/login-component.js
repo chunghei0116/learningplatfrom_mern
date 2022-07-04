@@ -1,9 +1,10 @@
 import React, { useState } from "react";
-import { useNavigate } from "react-router";
+import { useHistory } from "react-router";
 import AuthService from "../services/auth.service";
 
-const LoginComponent = () => {
-  const navigate = useNavigate();
+const LoginComponent = (props) => {
+  let { currentUser, setCurrentUser } = props;
+  const history = useHistory();
   let [email, setEmail] = useState("");
   let [password, setPassword] = useState("");
   let [message, setMessage] = useState("");
@@ -16,12 +17,15 @@ const LoginComponent = () => {
   const handleLogin = () => {
     AuthService.login(email, password)
       .then((response) => {
-        console.log(response.data); //return the data from the server as we inplemented in backend programme
-        //response will return a JWT token
+        console.log(response.data);
         if (response.data.token) {
           localStorage.setItem("user", JSON.stringify(response.data));
         }
-        navigate("/profile");
+        window.alert(
+          "Login successfully, you are now redirected to the profile page."
+        );
+        setCurrentUser(AuthService.getCurrentUser());
+        history.push("/profile");
       })
       .catch((error) => {
         console.log(error.response);

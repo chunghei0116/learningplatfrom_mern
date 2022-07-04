@@ -1,15 +1,16 @@
 import React, { useState } from "react";
-import { useNavigate } from "react-router-dom"; //redirect to pages
+import { useHistory } from "react-router-dom";
 import AuthService from "../services/auth.service";
 
 const RegisterComponent = () => {
-  const navigate = useNavigate();
-  let [username, setUsername] = useState(""); //some state var
+  const history = useHistory();
+  let [username, setUsername] = useState("");
   let [email, setEmail] = useState("");
   let [password, setPassword] = useState("");
   let [role, setRole] = useState("");
-  let [message, setMessage] = useState(""); //error message
-  const handleChangeUseranme = (e) => {
+  let [message, setMessage] = useState("");
+
+  const handleChangeUsername = (e) => {
     setUsername(e.target.value);
   };
   const handleChangeEmail = (e) => {
@@ -18,16 +19,16 @@ const RegisterComponent = () => {
   const handleChangePassword = (e) => {
     setPassword(e.target.value);
   };
-  const handleChangeRole = (e) => {
+  const handleChnageRole = (e) => {
     setRole(e.target.value);
   };
   const handleRegister = () => {
     AuthService.register(username, email, password, role)
       .then(() => {
         window.alert(
-          "Registration succeeeds. You are now redirected to the login page"
+          "Registration succeeds. You are now redirected to the login page."
         );
-        navigate("/login");
+        history.push("/login");
       })
       .catch((error) => {
         console.log(error.response);
@@ -42,7 +43,7 @@ const RegisterComponent = () => {
         <div>
           <label htmlFor="username">Username</label>
           <input
-            onChange={handleChangeUseranme}
+            onChange={handleChangeUsername}
             type="text"
             className="form-control"
             name="username"
@@ -72,14 +73,14 @@ const RegisterComponent = () => {
         <div className="form-group">
           <label htmlFor="password">role</label>
           <input
-            onChange={handleChangeRole}
+            onChange={handleChnageRole}
             type="text"
             className="form-control"
             name="role"
           />
         </div>
         <br />
-        <button className="btn btn-primary" onClick={handleRegister}>
+        <button onClick={handleRegister} className="btn btn-primary">
           <span>Register</span>
         </button>
       </div>

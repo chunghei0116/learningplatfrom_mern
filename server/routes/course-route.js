@@ -1,31 +1,63 @@
 const router = require("express").Router();
-const Course = require("../models").corseModel;
+const Course = require("../models").courseModel;
 const courseValidation = require("../validation").courseValidation;
 
 router.use((req, res, next) => {
-  {
-    console.log("A req is coming into api");
-    next(); // remember to type the next to acces next middleware
-  }
+  console.log("A request is coming into api...");
+  next();
 });
 
 router.get("/", (req, res) => {
-  //List out all the courses
   Course.find({})
-    .populate("instructor", ["username", "email"]) // when we find data by _id but also get the data like email and username
+    .populate("instructor", ["username", "email"])
     .then((course) => {
       res.send(course);
     })
     .catch(() => {
-      res.status(500).send("Cannot get the course!");
-    }); //return all the data once
+      res.status(500).send("Error!! Cannot get course!!");
+    });
+});
+
+router.get("/instructor/:_instructor_id", (req, res) => {
+  let { _instructor_id } = req.params;
+  Course.find({ instructor: _instructor_id })
+    .populate("instructor", ["username", "email"])
+    .then((data) => {
+      res.send(data);
+    })
+    .catch(() => {
+      res.status(500).send("Cannot get course data.");
+    });
+});
+
+router.get("/findByName/:name", (req, res) => {
+  let { name } = req.params;
+  Course.find({ title: name })
+    .populate("instructor", ["username", "email"])
+    .then((course) => {
+      res.status(200).send(course);
+    })
+    .catch((err) => {
+      res.status(500).send(err);
+    });
+});
+
+router.get("/student/:_student_id", (req, res) => {
+  let { _student_id } = req.params;
+  Course.find({ students: _student_id })
+    .populate("instructor", ["username", "email"])
+    .then((courses) => {
+      res.status(200).send(courses);
+    })
+    .catch(() => {
+      res.status(500).send("Cannot get data.");
+    });
 });
 
 router.get("/:_id", (req, res) => {
-  //find the specific one course
   let { _id } = req.params;
   Course.findOne({ _id })
-    .populate("instructor", ["emial"])
+    .populate("instructor", ["email"])
     .then((course) => {
       res.send(course);
     })
@@ -35,14 +67,13 @@ router.get("/:_id", (req, res) => {
 });
 
 router.post("/", async (req, res) => {
-  // create a new course by the instructor
+  // validate the inputs before making a new course
   const { error } = courseValidation(req.body);
-  if (error) return res.status(400).send(error.message);
+  if (error) return res.status(400).send(error.details[0].message);
 
   let { title, description, price } = req.body;
-  console.log(req.user);
   if (req.user.isStudent()) {
-    return res.status(400).send("Only instructor can post a new course");
+    return res.status(400).send("Only instructor can post a new course.");
   }
 
   let newCourse = new Course({
@@ -54,23 +85,38 @@ router.post("/", async (req, res) => {
 
   try {
     await newCourse.save();
-    res.status(200).send("New course has been post");
+    res.status(200).send("New course has been saved.");
   } catch (err) {
-    res.status(400).send("Posting error");
+    res.status(400).send("Cannot save course.");
+  }
+});
+
+router.post("/enroll/:_id", async (req, res) => {
+  let { _id } = req.params;
+  let { user_id } = req.body;
+  try {
+    let course = await Course.findOne({ _id });
+    course.students.push(user_id);
+    await course.save();
+    res.send("Done Enrollment.");
+  } catch (err) {
+    res.send(err);
   }
 });
 
 router.patch("/:_id", async (req, res) => {
-  //edit the specific course
+  // validate the inputs before making a new course
   const { error } = courseValidation(req.body);
-  if (error) return res.status(400).send(error.message);
+  if (error) return res.status(400).send(error.details[0].message);
 
   let { _id } = req.params;
-  let course = await Course.findOne({ _id }); // remember to add await as we need to get the data back from the DB
+  let course = await Course.findOne({ _id });
   if (!course) {
-    //Cannot find that course
     res.status(404);
-    return res.json({ success: false, message: "Cannot find that course" });
+    return res.json({
+      success: false,
+      message: "Course not found.",
+    });
   }
 
   if (course.instructor.equals(req.user._id) || req.user.isAdmin()) {
@@ -79,46 +125,52 @@ router.patch("/:_id", async (req, res) => {
       runValidators: true,
     })
       .then(() => {
-        res.send("Course updated");
+        res.send("Course updated.");
       })
       .catch((e) => {
-        res.send({ success: false, message: e });
+        res.send({
+          success: false,
+          message: e,
+        });
       });
-    //instructor who can edit that course
   } else {
     res.status(403);
     return res.json({
       success: false,
-      message: "Only instructor or admin can edit this course",
+      message:
+        "Only the instructor of this course or web admin can edit this course.",
     });
   }
 });
 
 router.delete("/:_id", async (req, res) => {
-  const { error } = courseValidation(req.body);
-  if (error) return res.status(400).send(error.message);
-
   let { _id } = req.params;
-  let course = await Course.findOne({ _id }); // remember to add await as we need to get the data back from the DB
+  let course = await Course.findOne({ _id });
   if (!course) {
-    //Cannot find that course
     res.status(404);
-    return res.json({ success: false, message: "Cannot find that course" });
+    return res.json({
+      success: false,
+      message: "Course not found.",
+    });
   }
+
   if (course.instructor.equals(req.user._id) || req.user.isAdmin()) {
     Course.deleteOne({ _id })
       .then(() => {
-        res.send("Course deleted");
+        res.send("Course deleted.");
       })
       .catch((e) => {
-        res.send({ success: false, message: e });
+        res.send({
+          success: false,
+          message: e,
+        });
       });
-    //instructor who can edit that course
   } else {
     res.status(403);
     return res.json({
       success: false,
-      message: "Only instructor or admin can delete this course",
+      message:
+        "Only the instructor of this course or web admin can delete this course.",
     });
   }
 });

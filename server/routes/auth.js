@@ -1,11 +1,11 @@
 const router = require("express").Router();
 const registerValidation = require("../validation").registerValidation;
-const loginValadation = require("../validation").loginValadation;
+const loginValidation = require("../validation").loginValidation;
 const User = require("../models").userModel;
-const JWT = require("jsonwebtoken");
+const jwt = require("jsonwebtoken");
 
 router.use((req, res, next) => {
-  console.log("A req is coming.");
+  console.log("A request is coming in to auth.js");
   next();
 });
 
@@ -17,16 +17,16 @@ router.get("/testAPI", (req, res) => {
 });
 
 router.post("/register", async (req, res) => {
-  //check the validation of the data
+  // check the validation of data
   const { error } = registerValidation(req.body);
-  if (error) {
-    return res.status(400).send(error.message);
-  }
-  //check user exists
+  if (error) return res.status(400).send(error.details[0].message);
+
+  // check if the user exists
   const emailExist = await User.findOne({ email: req.body.email });
   if (emailExist)
     return res.status(400).send("Email has already been registered.");
 
+  // register the user
   const newUser = new User({
     email: req.body.email,
     username: req.body.username,
@@ -40,15 +40,14 @@ router.post("/register", async (req, res) => {
       savedObject: savedUser,
     });
   } catch (err) {
-    console.log(err);
     res.status(400).send("User not saved.");
   }
 });
 
 router.post("/login", (req, res) => {
-  //check validation of the data
-  const { error } = loginValadation(req.body);
-  if (error) return res.status(400).send(error.message);
+  // check the validation of data
+  const { error } = loginValidation(req.body);
+  if (error) return res.status(400).send(error.details[0].message);
 
   User.findOne({ email: req.body.email }, function (err, user) {
     if (err) {
@@ -58,16 +57,13 @@ router.post("/login", (req, res) => {
       res.status(401).send("User not found.");
     } else {
       user.comparePassword(req.body.password, function (err, isMatch) {
+        if (err) return res.status(400).send(err);
         if (isMatch) {
-          if (err) {
-            res.status(400).send(err);
-          }
           const tokenObject = { _id: user._id, email: user.email };
-          const token = JWT.sign(tokenObject, process.env.PASSPORT_SECRET);
+          const token = jwt.sign(tokenObject, process.env.PASSPORT_SECRET);
           res.send({ success: true, token: "JWT " + token, user });
         } else {
-          console.log(err);
-          res.status(401).send("Wrong password");
+          res.status(401).send("Wrong password.");
         }
       });
     }

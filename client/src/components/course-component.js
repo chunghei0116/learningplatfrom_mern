@@ -1,32 +1,36 @@
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { useHistory } from "react-router-dom";
 import CourseService from "../services/course.service";
 
 const CourseComponent = (props) => {
-  let [courseData, setCourseData] = useState(null);
   let { currentUser, setCurrentUser } = props;
   const history = useHistory();
   const handleTakeToLogin = () => {
     history.push("/login");
   };
+  let [courseData, setCourseData] = useState(null);
   useEffect(() => {
-    console.log("using effect");
-    console.log(currentUser);
-    let _id = currentUser.user._id;
-    console.log(currentUser.user.role);
+    console.log("Using effect.");
+    let _id;
+    if (currentUser) {
+      _id = currentUser.user._id;
+    } else {
+      _id = "";
+    }
+
     if (currentUser.user.role == "instructor") {
       CourseService.get(_id)
         .then((data) => {
-          console.log(data.data);
+          console.log(data);
           setCourseData(data.data);
         })
-        .catch((error) => {
-          console.log(error);
+        .catch((err) => {
+          console.log(err);
         });
     } else if (currentUser.user.role == "student") {
-      CourseService.getEnrolled(_id)
+      CourseService.getEnrolledCourses(_id)
         .then((data) => {
-          console.log(data.data);
+          console.log(data);
           setCourseData(data.data);
         })
         .catch((error) => {
@@ -34,39 +38,41 @@ const CourseComponent = (props) => {
         });
     }
   }, []);
+
   return (
     <div style={{ padding: "3rem" }}>
       {!currentUser && (
         <div>
-          <p>You must login first before seeing posts.</p>
-          <button class="btn btn-primary btn-lg" onClick={handleTakeToLogin}>
-            Take me to login page.
+          <p>You must login before seeing your courses.</p>
+          <button
+            onClick={handleTakeToLogin}
+            className="btn btn-primary btn-lg"
+          >
+            Take me to login page
           </button>
         </div>
       )}
       {currentUser && currentUser.user.role == "instructor" && (
         <div>
-          <h1>Welcome to instructor's Course Page.</h1>
+          <h1>Welcome to instructor's Course page.</h1>
         </div>
       )}
       {currentUser && currentUser.user.role == "student" && (
         <div>
-          <h1>Welcome to Student's Course Page.</h1>
+          <h1>Welcome to student's Course page.</h1>
         </div>
       )}
       {currentUser && courseData && courseData.length != 0 && (
         <div>
-          <p>Data we got back from API.</p>
+          <p>Here's the data we got back from server.</p>
           {courseData.map((course) => (
             <div className="card" style={{ width: "18rem" }}>
               <div className="card-body">
                 <h5 className="card-title">{course.title}</h5>
                 <p className="card-text">{course.description}</p>
-                <p>Price: {course.price}</p>
-                <p>Student: {course.students.length}</p>
-                <a href="#" className="card-text btn btn-primary">
-                  See Course
-                </a>
+                <p>Student Count: {course.students.length}</p>
+                <button className="btn btn-primary">{course.price}</button>
+                <br />
               </div>
             </div>
           ))}
